@@ -1,58 +1,13 @@
-# Importa a função 'datetime' para registrar a data e hora exatas da análise
-from datetime import datetime
 # Importa a biblioteca 'streamlit', responsável por criar a interface visual do nosso site
 import streamlit as st
 # Importa a biblioteca 'google.generativeai' para conectar e enviar comandos para o modelo Gemini
 import google.generativeai as genai
 # Importa a biblioteca 'yfinance' para extrair as cotações financeiras direto do Yahoo Finance
 import yfinance as yf
-# Importa a biblioteca 'gspread' para permitir a edição de planilhas do Google Sheets
-import gspread
-# Importa a classe 'Credentials' para lidar com a autenticação de serviço do Google
-from google.oauth2.service_account import Credentials
-# Importa a biblioteca 'json' para converter o texto da nossa credencial em um formato legível
-import json
 # Importa a biblioteca 'requests' para fazer o download dos dados de clima da API Open-Meteo
 import requests
 
-# --- BLOCO 1: INTEGRAÇÃO COM GOOGLE SHEETS ---
-# Define a função que enviará os dados para a planilha, recebendo as variáveis de mercado e o texto final
-def salvar_no_sheets(bolsa, clima, enso, macro, veredito):
-    # Inicia um bloco de tentativa (try) para capturar possíveis erros de conexão
-    try:
-        # Define o escopo de permissões necessárias para acessar o Google Sheets e o Google Drive
-        scopes = [
-            # Permissão para acessar planilhas
-            "https://www.googleapis.com/auth/spreadsheets",
-            # Permissão para acessar o drive
-            "https://www.googleapis.com/auth/drive"
-        ]
-        # Lê o texto JSON contendo a chave do Google a partir do cofre (secrets) do Streamlit
-        credenciais_json = json.loads(st.secrets["GOOGLE_CREDENTIALS"])
-        # Gera as credenciais de autenticação utilizando o JSON lido e o escopo de permissões definido
-        credentials = Credentials.from_service_account_info(credenciais_json, scopes=scopes)
-        # Autoriza o cliente do gspread a se conectar ao Google Sheets usando as credenciais
-        cliente = gspread.authorize(credentials)
-        
-        # Abre a planilha chamada "Base_Agente_Cafe" e seleciona a primeira aba (sheet1)
-        planilha = cliente.open("Base_Agente_Cafe").sheet1
-        
-        # Cria um carimbo de texto com a data e hora atuais no formato brasileiro (Dia/Mês/Ano Hora:Minuto:Segundo)
-        data_hora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        # Agrupa a data, as informações de mercado e o veredito da IA em uma única lista (que será uma linha na planilha)
-        nova_linha = [data_hora, bolsa, clima, enso, macro, veredito]
-        
-        # Adiciona essa lista de informações como uma nova linha na parte inferior da planilha
-        planilha.append_row(nova_linha)
-        # Exibe uma mensagem verde de sucesso na tela do aplicativo
-        st.success("Análise registrada com sucesso na sua planilha Base_Agente_Cafe!")
-        
-    # Caso ocorra qualquer erro durante o processo acima, ele é capturado como 'e'
-    except Exception as e:
-        # Exibe uma mensagem vermelha de erro na tela do aplicativo, mostrando o motivo da falha
-        st.error(f"Erro ao salvar no Google Sheets: {e}")
-
-# --- BLOCO 2: BUSCA AUTOMÁTICA DE CLIMA ---
+# --- BLOCO 1: BUSCA AUTOMÁTICA DE CLIMA ---
 # Define a função responsável por buscar a previsão do tempo para as regiões cafeeiras
 def buscar_dados_clima():
     # Inicia um bloco de tentativa para lidar com possíveis quedas na API de clima
@@ -91,7 +46,7 @@ def buscar_dados_clima():
         # Retorna uma mensagem de aviso para que os dados sejam digitados manualmente
         return "Erro ao buscar clima. Por favor, insira manualmente."
 
-# --- BLOCO 3: BUSCA AUTOMÁTICA DO MERCADO FINANCEIRO ---
+# --- BLOCO 2: BUSCA AUTOMÁTICA DO MERCADO FINANCEIRO ---
 # Define a função que buscará os dados do contrato futuro de café e da moeda
 def buscar_dados_mercado():
     # Inicia um bloco de tentativa para lidar com possíveis falhas no Yahoo Finance
@@ -186,14 +141,14 @@ st.set_page_config(layout="wide")
 # Registra e desenha o Título Primário (H1) formatado em fonte grande no topo da página
 st.title("Agente Analista (IA): Café Arábica Global")
 
-# Escreve um parágrafo simples e fixo esclarecendo ao usuário o objetivo central da ferramenta e o destino dos dados
-st.write("Dados importados automaticamente. A análise será salva no Google Sheets.")
+# Escreve um parágrafo simples esclarecendo que os dados são apenas gerados na tela
+st.write("Dados importados automaticamente. A análise é gerada em tempo real na tela.")
 
 # Executa as leituras de mercado e desempacota o retorno triplo da API nas variáveis auto_bolsa e auto_macro
 auto_bolsa, auto_macro = buscar_dados_mercado()
 # Executa as leituras de clima da função dedicada e isola o texto retornado na variável auto_clima
 auto_clima = buscar_dados_clima()
-# PREENCHIMENTO ATUALIZADO: Fixa o texto extraído do último boletim climático como condição padrão de El Niño
+# Fixa o texto extraído do último boletim climático como condição padrão de El Niño
 auto_enso = "Sinopse: O El Niño está se intensificando, com uma probabilidade superior a 90% de ocorrência de um evento muito forte durante o outono e o inverno de 2026-27 no Hemisfério Norte."
 
 # Renderiza em Markdown enriquecido o título da seção de Bolsa contendo a formatação azul de link clicável (<a>)
@@ -224,7 +179,7 @@ if botao_analisar:
     # Levanta uma proteção lógica (if) que impede o envio de dados totalmente brancos ou limpos pelo usuário
     if dados_bolsa or dados_clima or dados_macro or dados_enso:
         # Coloca a interface em estado visual de processamento exibindo uma roda giratória de espera para o usuário
-        with st.spinner('O Agente está cruzando as variáveis do mercado e salvando no Sheets...'):
+        with st.spinner('O Agente está cruzando as variáveis do mercado e elaborando a análise...'):
             # Aciona a estrutura try/except vital para que um tombo isolado no modelo de IA não congele ou quebre o site inteiro
             try:
                 # Injeta nos componentes da biblioteca de nuvem as senhas descriptografadas previamente armazenadas nos Secrets
@@ -265,9 +220,6 @@ if botao_analisar:
                 st.subheader("Veredito Avançado do Agente:")
                 # Publica em tempo real a narrativa sintática gerada e avaliada nativamente pela própria Inteligência Artificial
                 st.write(texto_resposta)
-                
-                # Recruta a função definida no primeiro bloco passando o combo empacotado de variáveis numéricas da sessão atual
-                salvar_no_sheets(dados_bolsa, dados_clima, dados_enso, dados_macro, texto_resposta)
                 
             # Dispara imediatamente o tratamento da exceção caso algum código retorne erros de conexão ou cota esgotada (Status 500/403)
             except Exception as erro:
