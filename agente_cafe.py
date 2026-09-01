@@ -1,18 +1,11 @@
-# Importa o módulo 'datetime' para carimbar a data e hora na planilha e logs
+# Importa o módulo 'datetime' para carimbar a data e hora
 from datetime import datetime
-# Importa a biblioteca do Streamlit para criar a interface web
 import streamlit as st
-# Importa a biblioteca do Google Gemini para processar a inteligência artificial
 import google.generativeai as genai
-# Importa a biblioteca yfinance para buscar as cotações financeiras em tempo real
 import yfinance as yf
-# Importa a biblioteca gspread para manipular planilhas do Google Sheets
 import gspread
-# Importa o módulo Credentials para autenticar a conta de serviço do Google
 from google.oauth2.service_account import Credentials
-# Importa a biblioteca json para ler as credenciais protegidas no cofre do Streamlit
 import json
-# Importa a biblioteca requests para fazer chamadas em APIs web (como a de clima)
 import requests
 
 # --- BLOCO 1: INTEGRAÇÃO COM GOOGLE SHEETS ---
@@ -49,14 +42,10 @@ def buscar_dados_clima():
         
         for nome_regiao, coords in regioes_cafe.items():
             url = f"https://api.open-meteo.com/v1/forecast?latitude={coords['lat']}&longitude={coords['lon']}&daily=temperature_2m_max,precipitation_sum&timezone=America%2FSao_Paulo&forecast_days=3"
-            
             resposta = requests.get(url).json()
             
-            chuva_diaria = resposta['daily']['precipitation_sum']
-            temp_diaria = resposta['daily']['temperature_2m_max']
-            
-            chuva_total_3dias = sum(chuva_diaria)
-            temp_max_3dias = max(temp_diaria)
+            chuva_total_3dias = sum(resposta['daily']['precipitation_sum'])
+            temp_max_3dias = max(resposta['daily']['temperature_2m_max'])
             
             texto_clima_final += f"*{nome_regiao}:* Previsão de {chuva_total_3dias:.1f}mm acumulados nos próximos 3 dias. Temperatura máxima de {temp_max_3dias}°C.\n"
             
@@ -68,9 +57,12 @@ def buscar_dados_clima():
 # --- BLOCO 3: BUSCA AUTOMÁTICA DO MERCADO FINANCEIRO ---
 def buscar_dados_mercado():
     try:
-        # ATUALIZAÇÃO: Busca apontada especificamente para o contrato de Dezembro/26
+        # Busca o histórico do contrato de Dezembro/26
         cafe_ticker = yf.Ticker("KCZ26.NYB")
-        cafe_fechamento_ontem = cafe_ticker.fast_info['previousClose']
+        hist_cafe = cafe_ticker.history(period="5d")
+        
+        # Pega a penúltima linha da tabela de histórico (Fechamento exato de ontem)
+        cafe_fechamento_ontem = hist_cafe['Close'].iloc[-2]
         cafe_preco_atual = cafe_ticker.fast_info['lastPrice']
         
         if cafe_fechamento_ontem > 0:
@@ -86,7 +78,9 @@ def buscar_dados_mercado():
             direcao_cafe = "Estabilidade"
 
         dolar_ticker = yf.Ticker("BRL=X")
-        dolar_fechamento_ontem = dolar_ticker.fast_info['previousClose']
+        hist_dolar = dolar_ticker.history(period="5d")
+        
+        dolar_fechamento_ontem = hist_dolar['Close'].iloc[-2]
         dolar_preco_atual = dolar_ticker.fast_info['lastPrice']
         
         if dolar_fechamento_ontem > 0:
@@ -118,7 +112,9 @@ def buscar_dados_mercado():
 
 # --- INTERFACE GRÁFICA (FRONT-END STREAMLIT) ---
 st.set_page_config(layout="wide")
-st.title("Agente de IA Analista: Café Arábica Global")
+st.title("Agente Analista de Sentimento: Café Arábica Global")
+
+# Subtítulo corrigido com o link clicável
 st.write("Dados de bolsa (Contrato Dez/26) e clima importados automaticamente [do Yahoo Finance](https://finance.yahoo.com/quote/KCZ26.NYB/history/). A análise será salva no Google Sheets.")
 
 auto_bolsa, auto_macro = buscar_dados_mercado()
