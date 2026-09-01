@@ -119,7 +119,7 @@ def buscar_dados_mercado():
 # --- INTERFACE GRÁFICA (FRONT-END STREAMLIT) ---
 st.set_page_config(layout="wide")
 st.title("Agente de IA Analista: Café Arábica Global")
-st.write("Dados de bolsa (Contrato Dez/26) e clima importados automaticamente (https://finance.yahoo.com/quote/KCZ26.NYB/history/). A análise será salva no Google Sheets.")
+st.write("Dados de bolsa (Contrato Dez/26) e clima importados automaticamente 'https://finance.yahoo.com/quote/KCZ26.NYB/history/'. A análise será salva no Google Sheets.")
 
 auto_bolsa, auto_macro = buscar_dados_mercado()
 auto_clima = buscar_dados_clima()
