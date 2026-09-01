@@ -9,7 +9,7 @@ import json
 import requests
 
 # --- BLOCO 1: INTEGRAÇÃO COM GOOGLE SHEETS ---
-def salvar_no_sheets(bolsa, clima, macro, veredito):
+def salvar_no_sheets(bolsa, clima, enso, macro, veredito):
     try:
         scopes = [
             "https://www.googleapis.com/auth/spreadsheets",
@@ -22,7 +22,8 @@ def salvar_no_sheets(bolsa, clima, macro, veredito):
         planilha = cliente.open("Base_Agente_Cafe").sheet1
         
         data_hora = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-        nova_linha = [data_hora, bolsa, clima, macro, veredito]
+        # Incluímos o dado do ENSO na ordem para enviar à planilha
+        nova_linha = [data_hora, bolsa, clima, enso, macro, veredito]
         
         planilha.append_row(nova_linha)
         st.success("Análise registrada com sucesso na sua planilha Base_Agente_Cafe!")
@@ -114,20 +115,28 @@ def buscar_dados_mercado():
 st.set_page_config(layout="wide")
 st.title("Agente Analista (IA): Café Arábica Global")
 
-# Subtítulo corrigido com o link clicável
-st.write("Dados de bolsa (Contrato Dez/26) e clima importados automaticamente [do Yahoo Finance](https://finance.yahoo.com/quote/KCZ26.NYB/history/). A análise será salva no Google Sheets.")
+st.write("Dados importados automaticamente. A análise será salva no Google Sheets.")
 
 auto_bolsa, auto_macro = buscar_dados_mercado()
 auto_clima = buscar_dados_clima()
+auto_enso = "Condição atual: Neutro/La Niña. (Aguardando atualização manual sobre anomalias no Pacífico)"
 
-dados_bolsa = st.text_area("1. Bolsa de NY (ICE) e Mercado Futuro:", value=auto_bolsa, height=120)
-dados_clima = st.text_area("2. Clima nas Regiões Produtoras (Próximos 3 dias):", value=auto_clima, height=120)
-dados_macro = st.text_area("3. Câmbio (Dólar) e Macroeconomia:", value=auto_macro, height=120)
+st.markdown("**1. Bolsa de NY (ICE) e Mercado Futuro** - [(Acessar Yahoo Finance)](https://finance.yahoo.com/quote/KCZ26.NYB/history/)")
+dados_bolsa = st.text_area("Bolsa", value=auto_bolsa, height=120, label_visibility="collapsed")
+
+st.markdown("**2. Clima nas Regiões Produtoras (Próximos 3 dias)** - [(Acessar Fonte: Open-Meteo)](https://open-meteo.com/)")
+dados_clima = st.text_area("Clima", value=auto_clima, height=120, label_visibility="collapsed")
+
+st.markdown("**3. Fenômeno Climático Global (El Niño / La Niña)** - [(Acessar Monitoramento NOAA)](https://www.cpc.ncep.noaa.gov/products/analysis_monitoring/enso_advisory/ensodisc.shtml)")
+dados_enso = st.text_area("ENSO", value=auto_enso, height=80, label_visibility="collapsed")
+
+st.markdown("**4. Câmbio (Dólar) e Macroeconomia** - [(Acessar Yahoo Finance)](https://finance.yahoo.com/quote/BRL=X/history/)")
+dados_macro = st.text_area("Macro", value=auto_macro, height=120, label_visibility="collapsed")
 
 botao_analisar = st.button("Analisar Cenário Cruzado")
 
 if botao_analisar:
-    if dados_bolsa or dados_clima or dados_macro:
+    if dados_bolsa or dados_clima or dados_macro or dados_enso:
         with st.spinner('O Agente está cruzando as variáveis do mercado e salvando no Sheets...'):
             try:
                 genai.configure(api_key=st.secrets["CHAVE_GEMINI"])
@@ -135,7 +144,7 @@ if botao_analisar:
                 
                 prompt_sistema = f"""
                 Você é um analista sênior de inteligência focado exclusivamente no mercado internacional de café arábica.
-                Cruze as informações das três frentes fornecidas abaixo e estruture um resumo executivo avançado.
+                Cruze as informações das quatro frentes fornecidas abaixo e estruture um resumo executivo avançado.
                 
                 Instrução Crítica: Avalie o sentimento com base na VARIAÇÃO DIÁRIA (Cotação Atual vs Fechamento Anterior).
 
@@ -144,11 +153,12 @@ if botao_analisar:
                 Variáveis a serem analisadas:
                 1. Bolsa de NY (ICE): {dados_bolsa}
                 2. Clima nas Regiões Produtoras: {dados_clima}
-                3. Macroeconomia e Câmbio (Dólar): {dados_macro}
+                3. Fenômeno Global (El Niño/La Niña): {dados_enso}
+                4. Macroeconomia e Câmbio (Dólar): {dados_macro}
 
                 Sua resposta deve conter exatamente a seguinte estrutura:
                 * Sentimento Geral Integrado: (ALTISTA, BAIXISTA ou NEUTRO)
-                * Análise Cruzada: (Avalie em 1 parágrafo como o clima e o câmbio potencializam ou atenuam o movimento da Bolsa)
+                * Análise Cruzada: (Avalie em 1 parágrafo robusto como o clima local, o fenômeno global ENSO e o câmbio potencializam ou atenuam o movimento da Bolsa)
                 * Impactos na Exportação: (Avalie em 1 parágrafo curto como esse cenário afeta a fixação de novos contratos internacionais)
                 * Mitigação de Risco: (Sugira em 1 parágrafo curto os pontos de atenção imediatos para proteção financeira)
                 """
@@ -160,7 +170,7 @@ if botao_analisar:
                 st.subheader("Veredito Avançado do Agente:")
                 st.write(texto_resposta)
                 
-                salvar_no_sheets(dados_bolsa, dados_clima, dados_macro, texto_resposta)
+                salvar_no_sheets(dados_bolsa, dados_clima, dados_enso, dados_macro, texto_resposta)
                 
             except Exception as erro:
                 st.error(f"Ocorreu um erro na comunicação com a IA: {erro}")
