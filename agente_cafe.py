@@ -112,7 +112,7 @@ def buscar_dados_mercado():
 
 # --- INTERFACE GRÁFICA (FRONT-END STREAMLIT) ---
 st.set_page_config(layout="wide")
-st.title("Agente Analista de Sentimento: Café Arábica Global")
+st.title("Agente Analista (IA): Café Arábica Global")
 
 # Subtítulo corrigido com o link clicável
 st.write("Dados de bolsa (Contrato Dez/26) e clima importados automaticamente [do Yahoo Finance](https://finance.yahoo.com/quote/KCZ26.NYB/history/). A análise será salva no Google Sheets.")
